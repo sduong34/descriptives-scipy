@@ -20,62 +20,57 @@ pd.DataFrame({'t': t, 'sin': sin_t, 'cos': cos_t})
 data.shape
 data.columns 
 print(data['Gender'])
+data[data['Gender'] == 'Female']['VIQ'].mean()
 
-# Fill in the missing values for Height for plotting
-df['Height'].fillna(method='pad', inplace=True)
-
-#Box plots for each column for each gender
-groupby_gender = df.groupby('Gender')
+#box plots for each column grouped by gender
+groupby_gender = data.groupby('Gender')
 groupby_gender.boxplot(column=['FSIQ', 'VIQ', 'PIQ'])
 
 #scatter matrices
-scatter_matrix(df[['Weight', 'Height', 'MRI_Count']])
-scatter_matrix(df[['PIQ', 'VIQ', 'FSIQ']])
-scatter_matrix(df[['VIQ', 'MRI_Count', 'Height']], c=(df['Gender'] == 'Female'), marker='o', alpha=1, cmap='winter')
-fig = plt.gcf()
-fig.suptitle("blue: male, green: female", size=13)
-
-df.plot()
-plt.show()
+scatter_matrix(data[['Weight', 'Height', 'MRI_Count']])
+scatter_matrix(data[['PIQ', 'VIQ', 'FSIQ']])
 
 #1-sample t-test
-stats.ttest_1samp(df['VIQ'], 0)
+stats.ttest_1samp(data['VIQ'], 0)
 
 #2-sample t-test
-female_viq = df[df['Gender'] == 'Female']['VIQ']
-male_viq = df[df['Gender'] == 'Male']['VIQ']
+female_viq = data[data['Gender'] == 'Female']['VIQ']
+male_viq = data[data['Gender'] == 'Male']['VIQ']
 stats.ttest_ind(female_viq, male_viq)   
 
-#Paired Tests
-stats.ttest_ind(df['FSIQ'], df['PIQ']) 
-stats.ttest_rel(df['FSIQ'], df['PIQ'])
-stats.ttest_1samp(df['FSIQ'] - df['PIQ'], 0) 
-
-#Comparison between IQ of male and female using a linear model
-model = ols("VIQ ~ Gender + 1", df).fit()
-print(model.summary())
-
-#statsmodels
-model = ols('VIQ ~ Gender + MRI_Count + Height', df).fit()
-print(model.summary())
+#paired tests
+stats.ttest_ind(data['FSIQ'], data['PIQ']) 
+stats.ttest_rel(data['FSIQ'], data['PIQ'])
+stats.ttest_1samp(data['FSIQ'] - data['PIQ'], 0) 
+stats.wilcoxon(data['FSIQ'], data['PIQ'])
 
 #simple linear regression
 x = np.linspace(-5, 5, 20)
 np.random.seed(1)
 y = -5 + 3*x + 4 * np.random.normal(size=x.shape)
 data = pd.DataFrame({'x': x, 'y': y})
-
+#specify OLS model and fit it
 from statsmodels.formula.api import ols
 model = ols("y ~ x", data).fit()
-
+#inspect statistics derived from fit
 print(model.summary())
 
-#Multiple Regression
+#multiple regression
 data = pd.read_csv('data/iris.csv')
 model = ols('sepal_width ~ name + petal_length', data).fit()
 print(model.summary())  
+print(model.f_test([0, 1, -1, 0]))
 
-#Pairplot
-import seaborn
+#pairplot: scatter matrices ## missing dataset
 seaborn.pairplot(data, vars=['WAGE', 'AGE', 'EDUCATION'],
                  kind='reg')  
+seaborn.pairplot(data, vars=['WAGE', 'AGE', 'EDUCATION'],
+                 kind='reg', hue='SEX')
+
+#lmplot
+seaborn.lmplot(y='WAGE', x='EDUCATION', data=data)  
+
+#testing for interactions
+result = sm.ols(formula='wage ~ education + gender + education * gender',
+                data=data).fit()    
+print(result.summary()) 
